@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Screengrabber</title>
+    <script src="https://www.youtube.com/player_api"></script>
+  </head>
+  <body>
+    <div id="ytplayer"></div>
+
+    <script>
+      // Replace the 'ytplayer' element with an <iframe> and
+      // YouTube player after the API code downloads.
+      var player;
+      function onYouTubePlayerAPIReady() {
+        player = new YT.Player('ytplayer', {
+          height: '360',
+          width: '640',
+          videoId: 'Iag2zIejFN8',
+          events: {
+            onReady: onPlayerReady,
+            onStateChange: onPlayerStateChange
+          }
+        });
+        function onPlayerReady(event) {
+          event.target.playVideo();
+        }
+        function onPlayerStateChange(event) {
+          if (event.data === 0) {
+            console.log('Video ended');
+          } else {
+            console.log('some other thing', event);
+          }
+        }
+      }
+    </script>
+  </body>
+</html>
