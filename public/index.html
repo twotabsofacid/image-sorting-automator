@@ -5,19 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Screengrabber</title>
     <script src="https://www.youtube.com/player_api"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      .ytplayer {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1001;
+      }
+    </style>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.3/lib/p5.min.js"></script>
   </head>
   <body>
-    <div id="ytplayer"></div>
+    <div id="ytplayer" class="ytplayer"></div>
 
     <script>
+      var socket = io();
+      socket.on('connect', function () {
+        console.log('Connected to server');
+      });
+      socket.on('connection', function () {
+        console.log('Connection to server');
+      });
+      socket.on('disconnect', function () {
+        console.log('Disconnected from server');
+      });
+      socket.on('video', (data) => {
+        console.log('video', data);
+        player.loadVideoById(data.id.videoId, 5, 'large');
+      });
       // Replace the 'ytplayer' element with an <iframe> and
       // YouTube player after the API code downloads.
       var player;
       function onYouTubePlayerAPIReady() {
         player = new YT.Player('ytplayer', {
-          height: '360',
-          width: '640',
+          height: '768',
+          width: '1366',
           videoId: 'Iag2zIejFN8',
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            mute: 1
+          },
           events: {
             onReady: onPlayerReady,
             onStateChange: onPlayerStateChange
@@ -31,9 +66,139 @@
             console.log('Video ended');
           } else {
             console.log('some other thing', event);
+            if (event.data === 1) {
+              console.log('we should emit a video event');
+              socket.emit('video', {
+                id: player.getVideoData()
+              });
+            }
           }
         }
       }
+      /*
+       * p5.js stuff goes below here...
+       */
+      let img;
+      const w = 1366;
+      const h = 768;
+      let jump = 1366;
+
+      function setup() {
+        console.log('p5 setup called...');
+        createCanvas(w, h);
+        noFill();
+        pixelDensity(1);
+        loadImage('/out/screen-1740015474749.png', handleImage);
+      }
+
+      function handleImage(_img) {
+        img = _img;
+        buffer = createGraphics(img.width, img.height);
+        buffer.background(255);
+        buffer.image(img, 0, 0, img.width, img.height);
+        buffer.loadPixels();
+        drawOnce();
+      }
+
+      function drawOnce() {
+        background(255);
+        let colorArr = [];
+        for (let i = 0; i < buffer.pixels.length; i += 4) {
+          colorArr.push([
+            buffer.pixels[i],
+            buffer.pixels[i + 1],
+            buffer.pixels[i + 2]
+          ]);
+        }
+        // colorArr = mergeSort(colorArr);
+        for (let x = 0; x < width * height - (jump + 1); x += jump) {
+          colorArr = quickSort(colorArr, x, x + jump);
+        }
+        for (let i = 0; i < colorArr.length; i++) {
+          let x = i % w;
+          let y = floor(i / w);
+          stroke(colorArr[i][0], colorArr[i][1], colorArr[i][2]);
+          rect(x, y, 1, 1);
+        }
+        console.log('WE SHOULD BE DONE DRAWING', socket);
+        socket.emit('image', {
+          pixels: colorArr
+        });
+        // saveCanvas('out.png');
+      }
+
+      function mergeSort(arr) {
+        // Base case: if array has 1 or fewer elements, it's already sorted
+        if (arr.length <= 1) {
+          return arr;
+        }
+        // Find the middle point to divide the array into two halves
+        const mid = Math.floor(arr.length / 2);
+        // Divide array into left and right halves
+        const left = arr.slice(0, mid);
+        const right = arr.slice(mid);
+        // Recursively sort both halves
+        return merge(mergeSort(left), mergeSort(right));
+      }
+
+      function merge(left, right) {
+        let result = [];
+        let leftIndex = 0;
+        let rightIndex = 0;
+        // Compare elements from both arrays and merge them in sorted order
+        while (leftIndex < left.length && rightIndex < right.length) {
+          if (left[leftIndex] < right[rightIndex]) {
+            result.push(left[leftIndex]);
+            leftIndex++;
+          } else {
+            result.push(right[rightIndex]);
+            rightIndex++;
+          }
+        }
+        // Add remaining elements from left array, if any
+        while (leftIndex < left.length) {
+          result.push(left[leftIndex]);
+          leftIndex++;
+        }
+        // Add remaining elements from right array, if any
+        while (rightIndex < right.length) {
+          result.push(right[rightIndex]);
+          rightIndex++;
+        }
+        return result;
+      }
+
+      function quickSort(arr, left = 0, right = arr.length - 1) {
+        if (left < right) {
+          const pivotIndex = partition(arr, left, right);
+          quickSort(arr, left, pivotIndex - 1); // Sort left half
+          quickSort(arr, pivotIndex + 1, right); // Sort right half
+        }
+        return arr;
+      }
+
+      function partition(arr, left, right) {
+        const pivot = arr[right]; // Using last element as pivot
+        let i = left - 1; // Index of smaller element
+
+        for (let j = left; j < right; j++) {
+          // If current element is smaller than or equal to pivot
+          if (arr[j] <= pivot) {
+            i++; // Increment index of smaller element
+            [arr[i], arr[j]] = [arr[j], arr[i]]; // Swap elements
+          }
+        }
+        // Place pivot in its correct position
+        [arr[i + 1], arr[right]] = [arr[right], arr[i + 1]];
+        return i + 1; // Return pivot's index
+      }
+
+      // function mouseClicked() {
+      //   jump = floor(
+      //     sqrt(constrain(mouseX, 1, width) * constrain(mouseY, 1, height)) * 2
+      //   );
+      //   drawOnce();
+      // }
     </script>
   </body>
 </html>
