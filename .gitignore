@@ -52,3 +52,4 @@ Thumbs.db
 .env
 service-account-key.json
 out/*.png
+manipulated/*.png

@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import cors from 'cors';
 import { Server } from 'socket.io';
+import { PngMaker } from './components/pngMaker.js';
 // Variables
 const __dirname = path.resolve();
 const API_KEY = process.env.API_KEY;
@@ -42,7 +43,7 @@ class Main {
         console.log('WE ARE PLAYING A NEW VIDEO');
         setTimeout(() => {
           this.grabScreenshot();
-        }, 300000);
+        }, 5000);
       });
       socket.on('image', (data) => {
         console.log('we got an image', data, data.length);
@@ -69,11 +70,15 @@ class Main {
           if (sources[s].name === 'Screengrabber') {
             const content = sources[s].thumbnail.toPNG();
             console.log(content);
-            fs.writeFile(`out/screen-${Date.now()}.png`, content, (error) => {
+            const fileName = `screen-${Date.now()}`;
+            fs.writeFile(`out/${fileName}.png`, content, (error) => {
               if (error) {
                 console.error('Error saving PNG file:', error);
               } else {
-                console.log('PNG file saved successfully!');
+                console.log(
+                  'PNG file saved successfully! Going to manipulate it now...'
+                );
+                new PngMaker(fileName);
               }
             });
           }
@@ -143,14 +148,14 @@ class Main {
     this.server.listen(6969, () => {
       console.log(`Server listening on port ${6969}`);
     });
-    // setInterval(() => {
-    //   this.getRandomVideoID()
-    //     .catch(console.error)
-    //     .then((video) => {
-    //       console.log('what the fuck we have something', video.snippet.title);
-    //       this.io.emit('video', video);
-    //     });
-    // }, 10000);
+    setInterval(() => {
+      this.getRandomVideoID()
+        .catch(console.error)
+        .then((video) => {
+          console.log('what the fuck we have something', video.snippet.title);
+          this.io.emit('video', video);
+        });
+    }, 10000);
   }
 }
 
