@@ -2,7 +2,7 @@ import { PNG } from 'pngjs';
 import fs from 'node:fs';
 const width = 1366;
 const height = 768;
-const jump = 1366;
+const jump = 768;
 
 class PngMaker {
   constructor(imgName) {
@@ -54,6 +54,24 @@ class PngMaker {
     [arr[i + 1], arr[right]] = [arr[right], arr[i + 1]];
     return i + 1; // Return pivot's index
   }
+  shellSort(arr) {
+    let n = arr.length;
+    // Start with a large gap and reduce it over time
+    for (let gap = Math.floor(n / 2); gap > jump; gap = Math.floor(gap / 2)) {
+      // Perform insertion sort for elements at each gap
+      for (let i = gap; i < n; i++) {
+        let temp = arr[i];
+        let j;
+        // Shift elements until the correct position for arr[i] is found
+        for (j = i; j >= gap && arr[j - gap].r > temp.r; j -= gap) {
+          arr[j] = arr[j - gap];
+        }
+        // Place the original arr[i] in its correct position
+        arr[j] = temp;
+      }
+    }
+    return arr;
+  }
   start() {
     const _self = this;
     fs.createReadStream(`out/${_self.imgName}.png`)
@@ -63,9 +81,12 @@ class PngMaker {
           .createPixelArr(this)
           .then((pixels) => {
             console.log('we did it', pixels);
-            for (let x = 0; x < width * height - (jump + 1); x += jump) {
-              pixels = _self.quickSort(pixels, x, x + jump);
-            }
+            // Quicksort implementation
+            // for (let x = 0; x < width * height - (jump + 1); x += jump) {
+            //   pixels = _self.quickSort(pixels, x, x + jump);
+            // }
+            // Shellsort implementation
+            pixels = _self.shellSort(pixels);
             for (var y = 0; y < _self.png.height; y++) {
               for (var x = 0; x < _self.png.width; x++) {
                 var idx = (_self.png.width * y + x) << 2;
@@ -86,4 +107,6 @@ class PngMaker {
   }
 }
 
-export { PngMaker };
+new PngMaker('durst');
+
+// export { PngMaker };
